@@ -1,0 +1,18 @@
+[project]
+name = "pyircsdk"
+version = "0.0.1"
+authors = [
+  { name="Bludot", email="admin@floretos.com" },
+]
+description = "pyIRCSDK is a Python library for creating IRC bots and clients. It is designed to provide granular access to raw mesages and to provide an event emitter like interface for handling messages."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/bludot/pyircsdk"
+Issues = "https://github.com/bludot/pyircsdk/issues"
