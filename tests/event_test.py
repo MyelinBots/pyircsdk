@@ -1,5 +1,5 @@
 import unittest
-from .event import Event
+from event.event import Event
 from unittest.mock import MagicMock
 
 class TestEventMethods(unittest.TestCase):
