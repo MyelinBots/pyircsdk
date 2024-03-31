@@ -66,7 +66,7 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           RUNNER_DEBUG: 1
         with:
-          semantic_version: 19
+          semantic_version: 23
           extra_plugins: |
             @semantic-release/git@10.0.1
             @semantic-release/exec@6.0.3
