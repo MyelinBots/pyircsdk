@@ -61,7 +61,7 @@ jobs:
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         with:
-          semantic_version: 19.0.5
+          semantic_version: 17
           extra_plugins: |
             @semantic-release/git@10.0.1
             @semantic-release/exec@6.0.3
