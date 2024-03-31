@@ -8,4 +8,5 @@ install:
 
 test:
 	@echo "Testing..."
-	python -m unittest tests/*.py
+	python -m coverage run -m unittest tests/*.py
+	python -m coverage report -m
