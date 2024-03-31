@@ -57,11 +57,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: release
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: release
         uses: cycjimmy/semantic-release-action@v4
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         with:
-          semantic_version: 17
+          semantic_version: 19.0.5
           extra_plugins: |
             @semantic-release/git@10.0.1
             @semantic-release/exec@6.0.3
