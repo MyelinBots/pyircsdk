@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock
-
 from pyircsdk.event.event import Event
 
 
