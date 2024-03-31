@@ -22,6 +22,9 @@ module.exports = {
     prepare: [
     ],
     publish: [
-        "@semantic-release/github"
+        "@semantic-release/github",
+        "@semantic-release/commit-analyzer",
+        "@semantic-release/release-notes-generator",
+        "semantic-release-pypi"
     ],
 };
