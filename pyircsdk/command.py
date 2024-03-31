@@ -21,7 +21,6 @@ class Module:
     def startListening(self):
         self.irc.event.on('message', lambda x: print(x.command, x.messageFrom, x.messageTo, x.message))
         self.irc.event.on('message', lambda x: self.handleCommand(x, self.messageToCommandWithArgs(x)))
-        self.irc.connect(None)
 
     def messageToCommandWithArgs(self, message):
         command = Command()

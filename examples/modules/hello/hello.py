@@ -1,4 +1,4 @@
-
+import sys
 def handleCommand(irc, command, messageFrom, messageTo, message):
     if command == 'PRIVMSG':
         if message == 'hello pyirc':
