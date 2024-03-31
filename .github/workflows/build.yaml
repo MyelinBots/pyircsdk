@@ -64,6 +64,7 @@ jobs:
         uses: cycjimmy/semantic-release-action@v4
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          RUNNER_DEBUG: 1
         with:
           semantic_version: 19
           extra_plugins: |
