@@ -52,10 +52,14 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - name: Setup requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
       - name: release
         uses: cycjimmy/semantic-release-action@v3
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         with:
           semantic_version: 18
           extra_plugins: |
