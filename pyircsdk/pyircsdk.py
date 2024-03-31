@@ -1,6 +1,7 @@
 import socket
 import sys
-from event.event import Event
+
+from .event.event import Event
 from .message import Message
 
 

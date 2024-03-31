@@ -4,7 +4,7 @@ build:
 
 install:
 	@echo "Installing..."
-	pip install dist/*.whl
+	pip install dist/*.whl --force-reinstall
 
 test:
 	@echo "Testing..."
