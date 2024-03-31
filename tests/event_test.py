@@ -1,6 +1,7 @@
 import unittest
-from .event import Event
 from unittest.mock import MagicMock
+from pyircsdk.event.event import Event
+
 
 class TestEventMethods(unittest.TestCase):
 

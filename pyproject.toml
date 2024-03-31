@@ -1,9 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "pyircsdk"
-version = "0.0.1"
 authors = [
   { name="Bludot", email="admin@floretos.com" },
 ]
+version = "0.0.1"
 description = "pyIRCSDK is a Python library for creating IRC bots and clients. It is designed to provide granular access to raw mesages and to provide an event emitter like interface for handling messages."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -16,3 +20,11 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/bludot/pyircsdk"
 Issues = "https://github.com/bludot/pyircsdk/issues"
+
+[tool.hatch.version]
+path = "pyircsdk/__about__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/pyircsdk/**",
+]
