@@ -1,4 +1,4 @@
-name: go-tests
+name: python-tests
 
 on:
   push:
