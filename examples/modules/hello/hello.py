@@ -1,8 +1,13 @@
 import sys
-def handleCommand(irc, command, messageFrom, messageTo, message):
-    if command == 'PRIVMSG':
-        if message == 'hello pyirc':
-            irc.privmsg(messageTo, "Hello, %s" % messageFrom)
-        if message == 'quit':
-            irc.close()
-            sys.exit(0)
+
+from pyircsdk import Module
+
+
+class HelloModule(Module):
+    def __init__(self, irc):
+        super().__init__(irc, "", "hello")
+
+    def handleCommand(self, message, command):
+        if message.command == 'PRIVMSG':
+            if command.command == self.fantasy + self.command and command.args[0] == 'pyirc':
+                self.irc.privmsg(message.messageTo, "Hello, %s" % message.messageFrom)
