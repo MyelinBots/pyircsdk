@@ -20,14 +20,24 @@ class Module:
 
     def startListening(self):
         self.irc.event.on('message', lambda x: print(x.command, x.messageFrom, x.messageTo, x.message))
-        self.irc.event.on('message', lambda x: self.handleCommand(x, self.messageToCommandWithArgs(x)))
+        self.irc.event.on('message', lambda x: self.handleMessage(x))
+
+    def handleMessage(self, x):
+        try:
+            self.handleCommand(x, self.messageToCommandWithArgs(x))
+        except Exception as e:
+            self.handleError(x, self.messageToCommandWithArgs(x), e)
 
     def messageToCommandWithArgs(self, message):
         command = Command()
         if message is not None and message.message is not None:
             return command.parse(message.message.split(' '))
-        return command
+            return command
 
     @abstractmethod
     def handleCommand(self, message, command):
+        pass
+
+    @abstractmethod
+    def handleError(self, message, command, error):
         pass
