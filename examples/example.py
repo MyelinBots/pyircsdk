@@ -1,17 +1,16 @@
 import sys
 
-from examples.modules.hello.hello import HelloModule
-from examples.modules.quit.quit import QuitModule
-from examples.modules.urlparse.urlparse import URLParse
+from modules.hello.hello import HelloModule
+from modules.quit.quit import QuitModule
+from modules.urlparse.urlparse import URLParse
 from pyircsdk import IRCSDKConfig, IRCSDK, Module
-
-
 
 irc = IRCSDK(IRCSDKConfig('irc.rizon.net',
                           6667,
                           'pyircsdk',
                           '#toolbot',
-                          'pyircsdk'
+                          'pyircsdk',
+                          'pyircsdk made by nyankochan'
                           ))
 
 helloModule = HelloModule(irc)

@@ -4,27 +4,42 @@ import sys
 from .event.event import Event
 from .message import Message
 
+class IRCSDKConfig:
+    def __init__(self, host, port, nick, channel, user, realname):
+        self.host = host
+        self.port = port
+        self.nick = nick
+        self.channel = channel
+        self.user = user
+        self.realname = realname
+
+    def __str__(self):
+        return f'Host: {self.host}, Port: {self.port}, Nick: {self.nick}, Channel: {self.channel}, User: {self.user}'
+
+    def __repr__(self):
+        return f'Host: {self.host}, Port: {self.port}, Nick: {self.nick}, Channel: {self.channel}, User: {self.user}'
+
 
 class IRCSDK:
-    def __init__(self, config):
-        self.event = Event()
+    def __init__(self, config: IRCSDKConfig = None) -> None:
+        self.event: Event = Event()
         if config:
             self.config = config
             self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def privmsg(self, receiver, msg):
+    def privmsg(self, receiver: str, msg: str) -> None:
         command = "PRIVMSG %s :%s\r\n" % (receiver, msg)
         self.irc.send(command.encode('utf-8'))
 
-    def sendRaw(self, msg):
+    def sendRaw(self, msg: str) -> None:
         self.irc.send(msg.encode('utf-8'))
 
-    def close(self):
+    def close(self) -> None:
         message = "QUIT :%s\r\n" % self.config.nick
         self.irc.send(message.encode('utf-8'))
         self.irc.close()
 
-    def connect(self, config):
+    def connect(self, config: IRCSDKConfig = None) -> None:
         # if no config use __init__ config
         if not config:
             config = self.config
@@ -33,7 +48,7 @@ class IRCSDK:
         if not self.config:
             raise ValueError('No config passed to connect')
 
-        self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.irc: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # print config
         print(config)
 
@@ -42,12 +57,13 @@ class IRCSDK:
 
         self.event.on('raw', self.log)
         self.event.on('raw', self.handle_raw_message)
-        self.setUser(self.config.user)
+        self.setUser(self.config.user, self.config.realname)
         self.setNick(self.config.nick)
+
         self.event.on('connected', lambda data: self.join(self.config.channel))
         self.startRecv()
 
-    def startRecv(self):
+    def startRecv(self) -> None:
         while 1:
             try:
                 text = self.irc.recv(2048)
@@ -57,26 +73,25 @@ class IRCSDK:
                 print(e)
                 # exit program
                 sys.exit(1)
-                break
 
-    def log(self, data):
+    def log(self, data: bytes) -> None:
         # convert bytes to string
         data = data.decode('utf-8')
         # print(data)
 
-    def join(self, channel):
+    def join(self, channel: str) -> None:
         buffer = "JOIN %s\r\n" % channel
         self.irc.send(buffer.encode('utf-8'))
 
-    def setUser(self, user):
-        command = "USER %s 0 * :%s\r\n" % (user, user)
+    def setUser(self, user: str, realname: str) -> None:
+        command = "USER %s 0 * :%s\r\n" % (user, realname)
         self.irc.send(command.encode('utf-8'))
 
-    def setNick(self, nick):
+    def setNick(self, nick: str) -> None:
         command = "NICK %s\r\n" % nick
         self.irc.send(command.encode('utf-8'))
 
-    def handle_raw_message(self, data):
+    def handle_raw_message(self, data: bytes) -> None:
         # parse message
         data = data.decode('utf-8')
         for line in data.split('\r\n'):
@@ -103,7 +118,7 @@ class IRCSDK:
                 #     print(data.split(':')[1])
                 #     self.sendRaw('QUOTE PONG ' + data.split(':')[1] + '\r\n')
 
-    def parse_message(self, data):
+    def parse_message(self, data: bytes) -> tuple:
         # convert bytes to string
         data = data.decode('utf-8')
 
@@ -139,29 +154,16 @@ class IRCSDK:
                 params = params[1:]
             else:
                 trailing = None
-        messageFrom = prefix.split('!')[0] if prefix else None
-        messageTo = params[0] if params else None
+        messageFrom: str = prefix.split('!')[0] if prefix else None
+        messageTo: str = params[0] if params else None
         # remove the first element from params
-        actualMessage = ' '.join(params[1:]) if params else None
+        actualMessage: str = ' '.join(params[1:]) if params else None
         # remove the ":" from the actual message
         if actualMessage:
-            actualMessage = actualMessage[1:]
+            actualMessage: str = actualMessage[1:]
 
         self.event.emit('message',
                         Message(data, prefix, command, params, trailing, messageFrom, messageTo, actualMessage))
 
         return data, message, prefix, command, params, trailing
 
-class IRCSDKConfig:
-    def __init__(self, host, port, nick, channel, user):
-        self.host = host
-        self.port = port
-        self.nick = nick
-        self.channel = channel
-        self.user = user
-
-    def __str__(self):
-        return f'Host: {self.host}, Port: {self.port}, Nick: {self.nick}, Channel: {self.channel}, User: {self.user}'
-
-    def __repr__(self):
-        return f'Host: {self.host}, Port: {self.port}, Nick: {self.nick}, Channel: {self.channel}, User: {self.user}'
