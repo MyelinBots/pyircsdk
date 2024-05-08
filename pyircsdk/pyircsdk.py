@@ -1,17 +1,29 @@
 import socket
+import ssl
 import sys
+from dataclasses import dataclass
 
 from .event.event import Event
 from .message import Message
 
+@dataclass
 class IRCSDKConfig:
-    def __init__(self, host, port, nick, channel, user, realname):
-        self.host = host
-        self.port = port
-        self.nick = nick
-        self.channel = channel
-        self.user = user
-        self.realname = realname
+    host: str
+    port: int
+    nick: str
+    channel: str
+    user: str
+    realname: str
+    password: str
+    ssl: bool
+
+    def __init__(self,  **kwargs):
+        for k in self.__dataclass_fields__:
+            setattr(self, k, None)
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
 
     def __str__(self):
         return f'Host: {self.host}, Port: {self.port}, Nick: {self.nick}, Channel: {self.channel}, User: {self.user}'
@@ -26,6 +38,8 @@ class IRCSDK:
         if config:
             self.config = config
             self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if self.config.ssl:
+                self.sslContext = ssl.create_default_context()
 
     def privmsg(self, receiver: str, msg: str) -> None:
         command = "PRIVMSG %s :%s\r\n" % (receiver, msg)
@@ -39,6 +53,11 @@ class IRCSDK:
         self.irc.send(message.encode('utf-8'))
         self.irc.close()
 
+    def sendPassword(self, password: str) -> None:
+        message = f"PASS {password}\r\n"
+        self.irc.send(message.encode('utf-8'))
+
+
     def connect(self, config: IRCSDKConfig = None) -> None:
         # if no config use __init__ config
         if not config:
@@ -49,6 +68,8 @@ class IRCSDK:
             raise ValueError('No config passed to connect')
 
         self.irc: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if self.config.ssl:
+            self.irc: socket.socket = self.sslContext.wrap_socket(self.irc, server_hostname=self.config.host)
         # print config
         print(config)
 
@@ -57,6 +78,9 @@ class IRCSDK:
 
         self.event.on('raw', self.log)
         self.event.on('raw', self.handle_raw_message)
+        if self.config.password:
+            self.sendPassword(self.config.password)
+
         self.setUser(self.config.user, self.config.realname)
         self.setNick(self.config.nick)
 
