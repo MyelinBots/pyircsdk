@@ -16,6 +16,8 @@ class IRCSDKConfig:
     realname: str
     password: str
     ssl: bool
+    nickservFormat: str
+    nickservPassword: str
 
     def __init__(self,  **kwargs):
         for k in self.__dataclass_fields__:
@@ -23,7 +25,8 @@ class IRCSDKConfig:
 
         for k, v in kwargs.items():
             setattr(self, k, v)
-
+        if self.nickservFormat == None:
+            self.nickservFormat = "nickserv :identify %s"
 
     def __str__(self):
         return f'Host: {self.host}, Port: {self.port}, Nick: {self.nick}, Channel: {self.channel}, User: {self.user}'
@@ -57,7 +60,6 @@ class IRCSDK:
         message = f"PASS {password}\r\n"
         self.irc.send(message.encode('utf-8'))
 
-
     def connect(self, config: IRCSDKConfig = None) -> None:
         # if no config use __init__ config
         if not config:
@@ -84,6 +86,7 @@ class IRCSDK:
         self.setUser(self.config.user, self.config.realname)
         self.setNick(self.config.nick)
 
+        self.event.on('connected', lambda data: self.nickServIdentify(self.config.nickservFormat, self.config.nickservPassword))
         self.event.on('connected', lambda data: self.join(self.config.channel))
         self.startRecv()
 
@@ -114,6 +117,12 @@ class IRCSDK:
     def setNick(self, nick: str) -> None:
         command = "NICK %s\r\n" % nick
         self.irc.send(command.encode('utf-8'))
+
+    def nickServIdentify(self, format: str, password: str) -> None:
+        formated = format % password
+        command = "PRIVMSG %s\r\n" % formated
+        self.irc.send(command.encode('utf-8'))
+
 
     def handle_raw_message(self, data: bytes) -> None:
         # parse message
