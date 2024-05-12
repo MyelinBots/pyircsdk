@@ -19,7 +19,6 @@ class Module:
         self.fantasy = fantasy
 
     def startListening(self):
-        self.irc.event.on('message', lambda x: print(x.command, x.messageFrom, x.messageTo, x.message))
         self.irc.event.on('message', lambda x: self.handleMessage(x))
 
     def handleMessage(self, x):

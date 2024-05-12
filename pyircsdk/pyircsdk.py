@@ -181,6 +181,7 @@ class IRCSDK:
 
                 # handle ping
                 if command == 'PING':
+                    print('PING', trailing)
                     self.sendRaw('PONG ' + trailing + '\r\n')
                 # find End of /MOTD command
                 if command == '376':
