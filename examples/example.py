@@ -10,7 +10,8 @@ irc = IRCSDK(IRCSDKConfig(host='irc.rizon.net',
                           nick='pyircsdk2',
                           channel='#toolbot',
                           user='pyircsdk',
-                          realname='pyircsdk made by nyankochan'
+                          realname='pyircsdk made by nyankochan',
+                          nodataTimeout=120
                           ))
 
 helloModule = HelloModule(irc)

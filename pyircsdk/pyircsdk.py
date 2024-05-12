@@ -20,6 +20,8 @@ class IRCSDKConfig:
     ssl: bool
     nickservFormat: str
     nickservPassword: str
+    nodataTimeout: int
+    connectionTimeout: int
 
     def __init__(self,  **kwargs):
         for k in self.__dataclass_fields__:
@@ -81,7 +83,7 @@ class IRCSDK:
 
     def try_connect(self, retries, wait_secs):
         for attempt in range(retries):
-            self.irc.settimeout(10)  # Set a timeout for the connection attempt
+            self.irc.settimeout(self.config.connectionTimeout or 10)  # Set a timeout for the connection attempt
 
             try:
                 print(f"Attempt {attempt + 1} of {retries}")
@@ -114,10 +116,11 @@ class IRCSDK:
                 else:
                     print("Maximum retry attempts reached, connection failed.")
                     raise
+
     def startRecv(self) -> None:
         while 1:
-            # 2 minutes timeout
-            ready = select.select([self.irc], [], [], 120)
+            # nodataTimeout or 120 seconds
+            ready = select.select([self.irc], [], [], self.config.nodataTimeout or 120)
             if ready[0]:
                 try:
                     data = self.irc.recv(2048)
@@ -130,12 +133,12 @@ class IRCSDK:
                     print(e)
                     # exit program
                     self.irc.close()
-                    sys.exit(1)
+                    exit(1)
             else:
-                print("No data received for 120 seconds, still listening...")
-                # exit program
+                print("No data received for %s seconds, quiting..." % str(self.config.nodataTimeout or 120))
+                # force program to close socket and to exit
                 self.irc.close()
-                sys.exit(1)
+                exit(1)
 
 
     def log(self, data: bytes) -> None:
@@ -178,6 +181,7 @@ class IRCSDK:
 
                 # handle ping
                 if command == 'PING':
+                    print('PING', trailing)
                     self.sendRaw('PONG ' + trailing + '\r\n')
                 # find End of /MOTD command
                 if command == '376':
