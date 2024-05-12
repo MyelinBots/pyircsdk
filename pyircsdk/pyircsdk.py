@@ -1,6 +1,8 @@
+import select
 import socket
 import ssl
 import sys
+import time
 from dataclasses import dataclass
 
 from .event.event import Event
@@ -68,38 +70,73 @@ class IRCSDK:
         # if no config is passed throw an error
         if not self.config:
             raise ValueError('No config passed to connect')
-
         self.irc: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if self.config.ssl:
             self.irc: socket.socket = self.sslContext.wrap_socket(self.irc, server_hostname=self.config.host)
         # print config
         print(config)
 
-        self.irc.connect((self.config.host, self.config.port))
-        self.event.emit('connected', 'Connected to host %s:%s' % (self.config.host, self.config.port))
+        # self.irc.connect((self.config.host, self.config.port))
+        self.try_connect(5, 5)
 
-        self.event.on('raw', self.log)
-        self.event.on('raw', self.handle_raw_message)
-        if self.config.password:
-            self.sendPassword(self.config.password)
+    def try_connect(self, retries, wait_secs):
+        for attempt in range(retries):
+            self.irc.settimeout(10)  # Set a timeout for the connection attempt
 
-        self.setUser(self.config.user, self.config.realname)
-        self.setNick(self.config.nick)
+            try:
+                print(f"Attempt {attempt + 1} of {retries}")
+                self.irc.connect((self.config.host, self.config.port))
+                print("Connection successful!")
+                self.irc.settimeout(None)  # Reset the timeout to None (no timeout
 
-        self.event.on('connected', lambda data: self.nickServIdentify(self.config.nickservFormat, self.config.nickservPassword))
-        self.event.on('connected', lambda data: self.join(self.config.channel))
-        self.startRecv()
+                print('Connected to host %s:%s' % (self.config.host, self.config.port))
+                self.event.emit('connected', 'Connected to host %s:%s' % (self.config.host, self.config.port))
 
+                self.event.on('raw', self.log)
+                self.event.on('raw', self.handle_raw_message)
+                if self.config.password:
+                    self.sendPassword(self.config.password)
+
+                self.setUser(self.config.user, self.config.realname)
+                self.setNick(self.config.nick)
+
+                self.event.on('connected', lambda data: self.nickServIdentify(self.config.nickservFormat,
+                                                                              self.config.nickservPassword))
+                self.event.on('connected', lambda data: self.join(self.config.channel))
+                self.startRecv()
+                break
+            except socket.error as e:
+                print(f"Connection failed: {e}")
+                self.irc.close()  # Make sure to close the socket on failure
+                if attempt < retries - 1:
+                    print(f"Waiting for {wait_secs} seconds before retrying...")
+                    time.sleep(wait_secs)
+                else:
+                    print("Maximum retry attempts reached, connection failed.")
+                    raise
     def startRecv(self) -> None:
         while 1:
-            try:
-                text = self.irc.recv(2048)
-                self.event.emit('raw', text)
+            # 2 minutes timeout
+            ready = select.select([self.irc], [], [], 120)
+            if ready[0]:
+                try:
+                    data = self.irc.recv(2048)
+                    if not data:
+                        print("Connection closed by the remote host.")
+                        break
+                    self.event.emit('raw', data)
 
-            except OSError as e:
-                print(e)
+                except OSError as e:
+                    print(e)
+                    # exit program
+                    self.irc.close()
+                    sys.exit(1)
+            else:
+                print("No data received for 120 seconds, still listening...")
                 # exit program
+                self.irc.close()
                 sys.exit(1)
+
 
     def log(self, data: bytes) -> None:
         # convert bytes to string
