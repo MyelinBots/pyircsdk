@@ -7,7 +7,7 @@ from pyircsdk import IRCSDKConfig, IRCSDK, Module
 
 irc = IRCSDK(IRCSDKConfig(host='irc.rizon.net',
                           port=6667,
-                          nick='pyircsdk2',
+                          nick='pyircsdk3',
                           channel='#toolbot',
                           user='pyircsdk',
                           realname='pyircsdk made by nyankochan'

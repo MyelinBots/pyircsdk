@@ -130,12 +130,12 @@ class IRCSDK:
                     print(e)
                     # exit program
                     self.irc.close()
-                    sys.exit(1)
+                    exit(1)
             else:
-                print("No data received for 120 seconds, still listening...")
-                # exit program
+                print("No data received for 120 seconds, quiting...")
+                # force program to close socket and to exit
                 self.irc.close()
-                sys.exit(1)
+                exit(1)
 
 
     def log(self, data: bytes) -> None:
