@@ -132,14 +132,17 @@ class IRCSDK:
                 except OSError as e:
                     print(e)
                     # exit program
-                    self.irc.close()
-                    exit(1)
+                    break;
             else:
                 if self.config.nodataTimeout > 0:
                     print("No data received for %s seconds, quiting..." % str(self.config.nodataTimeout or 120))
-                    # force program to close socket and to exit
-                    self.irc.close()
-                    exit(1)
+                    break
+
+        # force program to close socket and to exit
+        self.irc.close()
+        exit(1)
+
+
 
 
 
