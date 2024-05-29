@@ -5,10 +5,11 @@ from modules.quit.quit import QuitModule
 from modules.urlparse.urlparse import URLParse
 from pyircsdk import IRCSDKConfig, IRCSDK, Module
 
-irc = IRCSDK(IRCSDKConfig(host='irc.rizon.net',
-                          port=6667,
+irc = IRCSDK(IRCSDKConfig(host='irc.myelinbots.com',
+                          port=6697,
                           nick='pyircsdk2',
-                          channel='#toolbot',
+                          channel='#test',
+                          ssl=True,
                           user='pyircsdk',
                           realname='pyircsdk made by nyankochan',
                           nodataTimeout=120
