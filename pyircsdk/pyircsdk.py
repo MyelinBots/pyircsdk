@@ -189,7 +189,7 @@ class IRCSDK:
                     print('PING', trailing)
                     self.sendRaw('PONG ' + trailing + '\r\n')
                 # find End of /MOTD command
-                if command == '376':
+                if command == '376' or command == '422':
                     self.event.emit('connected', 'End of /MOTD command.')
 
                 # # find To connect type /QUOTE PONG
