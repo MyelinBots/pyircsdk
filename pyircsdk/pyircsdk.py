@@ -14,6 +14,7 @@ class IRCSDKConfig:
     port: int
     nick: str
     channel: str
+    channels: list[str]
     user: str
     realname: str
     password: str
@@ -102,9 +103,12 @@ class IRCSDK:
                 self.setUser(self.config.user, self.config.realname)
                 self.setNick(self.config.nick)
 
-                self.event.on('connected', lambda data: self.nickServIdentify(self.config.nickservFormat,
-                                                                              self.config.nickservPassword))
-                self.event.on('connected', lambda data: self.join(self.config.channel))
+                self.event.on('connected', lambda data: self.nickServIdentify(self.config.nickservFormat, self.config.nickservPassword))
+                if self.config.channels:
+                    self.event.on('connected', lambda data: [self.join(channel) for channel in self.config.channels])
+                else:
+                    self.event.on('connected', lambda data: self.join(self.config.channel))
+
                 self.startRecv()
                 break
             except socket.error as e:
