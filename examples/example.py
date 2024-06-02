@@ -8,7 +8,7 @@ from pyircsdk import IRCSDKConfig, IRCSDK, Module
 irc = IRCSDK(IRCSDKConfig(host='irc.myelinbots.com',
                           port=6697,
                           nick='pyircsdk2',
-                          channel='#test',
+                          channels=['#lobby', '#test'],
                           ssl=True,
                           user='pyircsdk',
                           realname='pyircsdk made by nyankochan',
