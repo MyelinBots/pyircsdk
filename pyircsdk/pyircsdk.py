@@ -1,7 +1,6 @@
 import select
 import socket
 import ssl
-import sys
 import time
 from dataclasses import dataclass
 
@@ -23,6 +22,7 @@ class IRCSDKConfig:
     nickservPassword: str
     nodataTimeout: int
     connectionTimeout: int
+    allowAnySSL: bool
 
     def __init__(self,  **kwargs):
         for k in self.__dataclass_fields__:
@@ -48,6 +48,9 @@ class IRCSDK:
             self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             if self.config.ssl:
                 self.sslContext = ssl.create_default_context()
+                if self.config.allowAnySSL:
+                    self.sslContext.check_hostname = False
+                    self.sslContext.verify_mode = ssl.CERT_NONE
 
     def privmsg(self, receiver: str, msg: str) -> None:
         command = "PRIVMSG %s :%s\r\n" % (receiver, msg)
