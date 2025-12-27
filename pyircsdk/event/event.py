@@ -1,29 +1,24 @@
 class Event:
     def __init__(self):
-        # make records of listeners by listener name
         self.listeners = {}
 
     def emit(self, name, data):
         if name in self.listeners:
-            for listener in self.listeners[name]:
-                listener.on(data)
+            for callback in self.listeners[name]:
+                callback(data)
 
-    # on accepts string and function
-    def on(self, listener, callback):
-        if listener in self.listeners:
-            self.listeners[listener].append(Listener(callback))
-        else:
-            self.listeners[listener] = []
-            self.listeners[listener].append(Listener(callback))
+    def on(self, name, callback):
+        if name not in self.listeners:
+            self.listeners[name] = []
+        self.listeners[name].append(callback)
 
-    def remove(self, listener, callback):
-        if listener in self.listeners:
-            self.listeners[listener].remove(callback)
+    def remove(self, name, callback):
+        if name in self.listeners:
+            try:
+                self.listeners[name].remove(callback)
+            except ValueError:
+                pass
 
-
-class Listener:
-    def __init__(self, callback):
-        self.callback = callback
-
-    def on(self, data):
-        self.callback(data)
+    def remove_all(self, name):
+        if name in self.listeners:
+            self.listeners[name] = []
