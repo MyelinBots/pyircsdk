@@ -1,6 +1,7 @@
 import select
 import socket
 import ssl
+import threading
 import time
 from dataclasses import dataclass
 
@@ -20,9 +21,13 @@ class IRCSDKConfig:
     ssl: bool
     nickservFormat: str
     nickservPassword: str
+    nickservWait: bool  # Wait for NickServ confirmation before joining channels
+    nickservTimeout: int  # Seconds to wait for NickServ before joining anyway (default: 10)
     nodataTimeout: int
     connectionTimeout: int
     allowAnySSL: bool
+    autoReconnect: bool  # Automatically reconnect on disconnect
+    reconnectDelay: int  # Seconds to wait before reconnecting
 
     def __init__(self,  **kwargs):
         for k in self.__dataclass_fields__:
@@ -44,6 +49,9 @@ class IRCSDK:
     def __init__(self, config: IRCSDKConfig = None) -> None:
         self.event: Event = Event()
         self._recv_buffer = ''
+        self._pending_channels = []  # Channels waiting to join after NickServ
+        self._nickserv_identified = False
+        self._nickserv_timer = None
         if config:
             self.config = config
             if self.config.ssl:
@@ -87,13 +95,42 @@ class IRCSDK:
 
         def on_connected(data):
             self.nickServIdentify(self.config.nickservFormat, self.config.nickservPassword)
+
+            # Determine channels to join
+            channels_to_join = []
             if self.config.channels:
-                for channel in self.config.channels:
-                    self.join(channel)
+                channels_to_join = self.config.channels
             elif self.config.channel:
-                self.join(self.config.channel)
+                channels_to_join = [self.config.channel]
+
+            # If nickservWait is enabled and we have a NickServ password, defer joining
+            if self.config.nickservWait and self.config.nickservPassword:
+                self._pending_channels = channels_to_join
+                timeout = self.config.nickservTimeout or 10
+                print(f"Waiting for NickServ identification before joining channels (timeout: {timeout}s)...")
+
+                # Start timeout timer to join anyway if NickServ doesn't respond
+                def nickserv_timeout():
+                    if self._pending_channels and not self._nickserv_identified:
+                        print(f"NickServ timeout after {timeout}s - joining channels anyway")
+                        self.event.emit('nickserv_timeout', timeout)
+                        self._join_channels(self._pending_channels)
+                        self._pending_channels = []
+
+                self._nickserv_timer = threading.Timer(timeout, nickserv_timeout)
+                self._nickserv_timer.daemon = True
+                self._nickserv_timer.start()
+            else:
+                self._join_channels(channels_to_join)
 
         self.event.on('connected', on_connected)
+
+    def _join_channels(self, channels: list) -> None:
+        """Join a list of channels with delay between joins"""
+        for i, channel in enumerate(channels):
+            if i > 0:
+                time.sleep(0.5)  # Delay between joins to prevent flood protection
+            self.join(channel)
 
     def try_connect(self, retries, wait_secs):
         for attempt in range(retries):
@@ -151,9 +188,46 @@ class IRCSDK:
                     break
 
         self.irc.close()
-        exit(1)
+        self._handle_disconnect()
+
+    def _handle_disconnect(self) -> None:
+        """Handle disconnection - either reconnect or exit"""
+        # Cancel any pending NickServ timer
+        if self._nickserv_timer:
+            self._nickserv_timer.cancel()
+            self._nickserv_timer = None
+
+        self.event.emit('disconnected', 'Connection lost')
+
+        if self.config.autoReconnect:
+            delay = self.config.reconnectDelay or 5
+            print(f"Auto-reconnect enabled. Reconnecting in {delay} seconds...")
+            time.sleep(delay)
+            # Reset state for reconnection
+            self._recv_buffer = ''
+            self._pending_channels = []
+            self._nickserv_identified = False
+            self.try_connect(5, 5)
+        else:
+            exit(1)
 
     def join(self, channel: str) -> None:
+        # Validate channel name
+        if not channel:
+            print(f"Warning: Empty channel name, skipping join")
+            return
+        if not channel.startswith(('#', '&', '+', '!')):
+            print(f"Warning: Channel '{channel}' doesn't start with #, &, +, or ! - adding # prefix")
+            channel = '#' + channel
+        if ' ' in channel or ',' in channel:
+            print(f"Error: Invalid channel name '{channel}' - contains spaces or commas")
+            self.event.emit('join_error', {
+                'channel': channel,
+                'code': 'INVALID',
+                'reason': 'Channel name contains invalid characters'
+            })
+            return
+
         buffer = "JOIN %s\r\n" % channel
         self.irc.send(buffer.encode('utf-8'))
 
@@ -186,6 +260,39 @@ class IRCSDK:
 
                 if command == '376' or command == '422':
                     self.event.emit('connected', 'End of /MOTD command.')
+
+                # NickServ identification confirmation
+                if command == 'NOTICE' and prefix and 'nickserv' in prefix.lower():
+                    # Check for common identification success messages
+                    full_message = ' '.join(params).lower() if params else ''
+                    if 'you are now identified' in full_message or 'you are identified' in full_message:
+                        if not self._nickserv_identified:
+                            self._nickserv_identified = True
+                            # Cancel the timeout timer since we identified successfully
+                            if self._nickserv_timer:
+                                self._nickserv_timer.cancel()
+                                self._nickserv_timer = None
+                            print("NickServ identification successful")
+                            self.event.emit('nickserv_identified', True)
+                            if self._pending_channels:
+                                self._join_channels(self._pending_channels)
+                                self._pending_channels = []
+
+                # JOIN error codes
+                join_errors = {
+                    '471': 'Channel is full (+l)',
+                    '473': 'Channel is invite-only (+i)',
+                    '474': 'You are banned from this channel (+b)',
+                    '475': 'Bad channel key (+k)',
+                    '477': 'You need to register with services first',
+                }
+                if command in join_errors:
+                    channel = params[1] if len(params) > 1 else 'unknown'
+                    self.event.emit('join_error', {
+                        'channel': channel,
+                        'code': command,
+                        'reason': join_errors[command]
+                    })
 
     def parse_message(self, data: str) -> tuple:
         message = data.split()
